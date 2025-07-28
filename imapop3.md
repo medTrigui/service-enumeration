@@ -1,4 +1,3 @@
-```markdown:service-enumeration/imapop3.md
 # IMAP & POP3 Enumeration
 
 ---
@@ -186,5 +185,3 @@ Always save your enumeration output for later review and evidence.
 Use `-oN`/`-oG`/`-oA` with nmap, and redirect tool output to files.
 
 ---
-
-*This cheat sheet is designed for fast, effective IMAP/POP3 enumeration and exploitation in a pentest/OSCP context.*
