@@ -183,16 +183,16 @@ sudo systemctl restart smbd
 
 ```mermaid
 graph TD
-    A[Start: Port Scan] --> B{Are 139/445 open?}
-    B -- No --> Z[Stop: Not SMB]
-    B -- Yes --> C[Service/OS Detection|Nmap version scan, NSE scripts]
-    C --> D[NetBIOS Name Enumeration|nbtscan, nmblookup]
-    D --> E[Share Enumeration|smbclient, rpcclient, SMBMap, CrackMapExec]
-    E --> F[User/Group Enumeration|rpcclient, enum4linux-ng, RID brute-force]
-    F --> G[Access Shares|smbclient, download files, check permissions]
-    G --> H[Check for Null Sessions|anonymous/guest access]
-    H --> I[Check for Dangerous Configs|guest access, writable shares, weak permissions]
-    I --> J[Document Findings & Exploit as Needed]
+  A[Start: Port Scan] --> B{Are 139/445 open?}
+  B -- No --> Z[Stop: Not SMB]
+  B -- Yes --> C[Service/OS Detection]
+  C --> D[NetBIOS Name Enumeration]
+  D --> E[Share Enumeration]
+  E --> F[User/Group Enumeration]
+  F --> G[Access Shares]
+  G --> H[Check for Null Sessions]
+  H --> I[Check for Dangerous Configs]
+  I --> J[Document Findings & Exploit]
 ```
 
 ### Step-by-Step Attack/Enumeration Flow
@@ -226,7 +226,7 @@ graph TD
 
 ---
 
-## 8. Useful Tables
+## 8. Versions & Tools
 
 ### SMB Versions
 
