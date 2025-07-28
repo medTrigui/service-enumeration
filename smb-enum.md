@@ -182,7 +182,7 @@ sudo systemctl restart smbd
 ### Flowchart
 
 ```mermaid
-flowchart TD
+graph TD
     A[Start: Port Scan] --> B{Are 139/445 open?}
     B -- No --> Z[Stop: Not SMB]
     B -- Yes --> C[Service/OS Detection|Nmap version scan, NSE scripts]
