@@ -1,35 +1,62 @@
 # SMB Enumeration Cheat Sheet
 
 ## Table of Contents
-1. [Ports & Protocols](#ports--protocols)
-2. [Quick Discovery](#quick-discovery)
-3. [Essential Enumeration Workflow](#essential-enumeration-workflow)
+1. [Overview](#overview)
+2. [Ports & Protocols](#ports--protocols)
+3. [Quick Discovery](#quick-discovery)
+4. [Essential Enumeration Workflow](#essential-enumeration-workflow)
    - [Host Enumeration](#1-host-enumeration)
    - [Share Enumeration](#2-share-enumeration)
    - [Share Access](#3-share-access)
-4. [File Enumeration Techniques](#file-enumeration-techniques)
+5. [File Enumeration Techniques](#file-enumeration-techniques)
    - [smbclient Commands](#smbclient-commands)
    - [Automated File Discovery](#automated-file-discovery)
    - [Mass File Search](#mass-file-search)
-5. [User Enumeration](#user-enumeration)
+6. [User Enumeration](#user-enumeration)
    - [RID Cycling](#rid-cycling)
    - [SAM Remote Protocol](#sam-remote-protocol)
    - [Manual User Enumeration](#manual-user-enumeration)
-6. [Vulnerability Scanning](#vulnerability-scanning)
-7. [Common Default Shares](#common-default-shares)
-8. [Attack Scenarios](#attack-scenarios)
+7. [Vulnerability Scanning](#vulnerability-scanning)
+8. [Common Default Shares](#common-default-shares)
+9. [Attack Scenarios](#attack-scenarios)
    - [Null Session Share Access](#scenario-1-null-session-share-access)
    - [Guest Account Enumeration](#scenario-2-guest-account-enumeration)
    - [Authenticated Enumeration](#scenario-3-authenticated-enumeration)
-9. [Key Security Issues](#key-security-issues-to-look-for)
-   - [High-Risk Configurations](#high-risk-configurations)
-   - [Common Misconfigurations](#common-misconfigurations)
-10. [Advanced Techniques](#advanced-techniques)
+10. [Key Security Issues](#key-security-issues-to-look-for)
+    - [High-Risk Configurations](#high-risk-configurations)
+    - [Common Misconfigurations](#common-misconfigurations)
+11. [Advanced Techniques](#advanced-techniques)
     - [Kerberos Authentication](#kerberos-authentication)
     - [Password Spraying](#password-spraying)
-11. [Quick Reference Commands](#quick-reference-commands)
-12. [Testing Checklist](#testing-checklist)
-13. [Critical Vulnerabilities](#critical-vulnerabilities)
+12. [Quick Reference Commands](#quick-reference-commands)
+13. [Testing Checklist](#testing-checklist)
+14. [Critical Vulnerabilities](#critical-vulnerabilities)
+
+---
+
+## Overview
+
+**SMB (Server Message Block)** is a network protocol for file/printer sharing and inter-process communication in Windows environments. Originally developed by IBM, it's now primarily associated with Microsoft Windows.
+
+### Key Functions
+- **File Sharing**: Access remote files and directories
+- **Printer Sharing**: Network printer access
+- **Named Pipes**: Inter-process communication
+- **Authentication**: User/computer authentication in domains
+
+### Why SMB Matters in Pentesting
+- **Ubiquitous**: Found on virtually all Windows networks
+- **High Privilege**: Often runs with SYSTEM/Administrator privileges
+- **Information Rich**: Exposes users, shares, and system information
+- **Attack Surface**: Frequent target for lateral movement and privilege escalation
+- **Legacy Issues**: Older versions (SMBv1) have critical vulnerabilities
+
+### Common Attack Vectors
+- **Anonymous Enumeration**: Null sessions reveal sensitive information
+- **Credential Attacks**: Password spraying, brute force
+- **Share Exploitation**: Writable shares, sensitive file exposure
+- **Vulnerability Exploitation**: EternalBlue (MS17-010), legacy flaws
+- **Lateral Movement**: Pass-the-hash, credential reuse
 
 ---
 
