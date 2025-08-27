@@ -1,0 +1,221 @@
+/* Enhanced dark theme styling for service enumeration cheat sheets */
+
+:root {
+  --md-primary-fg-color: #263238;
+  --md-primary-fg-color--light: #37474f;
+  --md-primary-fg-color--dark: #1c2a32;
+  --md-accent-fg-color: #ff5722;
+  --md-accent-fg-color--transparent: #ff572233;
+}
+
+/* Code block enhancements */
+.highlight pre {
+  background-color: #1e1e1e !important;
+  border-radius: 6px;
+  border-left: 4px solid var(--md-accent-fg-color);
+  margin: 1em 0;
+}
+
+.highlight .hll { background-color: #404040 }
+.highlight .c { color: #999999; font-style: italic }
+.highlight .k { color: #66d9ef; font-weight: bold }
+.highlight .o { color: #f92672 }
+.highlight .ch { color: #999999; font-style: italic }
+.highlight .cm { color: #999999; font-style: italic }
+.highlight .cp { color: #999999; font-weight: bold }
+.highlight .cpf { color: #999999; font-style: italic }
+.highlight .c1 { color: #999999; font-style: italic }
+.highlight .cs { color: #999999; font-weight: bold; font-style: italic }
+.highlight .gd { color: #f92672 }
+.highlight .ge { font-style: italic }
+.highlight .gi { color: #a6e22e }
+.highlight .gs { font-weight: bold }
+.highlight .gu { color: #75715e; font-weight: bold }
+.highlight .kc { color: #66d9ef; font-weight: bold }
+.highlight .kd { color: #66d9ef; font-weight: bold }
+.highlight .kn { color: #f92672; font-weight: bold }
+.highlight .kp { color: #66d9ef; font-weight: bold }
+.highlight .kr { color: #66d9ef; font-weight: bold }
+.highlight .kt { color: #66d9ef; font-weight: bold }
+.highlight .ld { color: #e6db74 }
+.highlight .m { color: #ae81ff }
+.highlight .s { color: #e6db74 }
+.highlight .na { color: #a6e22e }
+.highlight .nb { color: #f8f8f2 }
+.highlight .nc { color: #a6e22e; font-weight: bold }
+.highlight .no { color: #66d9ef }
+.highlight .nd { color: #a6e22e }
+.highlight .ni { color: #f8f8f2 }
+.highlight .ne { color: #a6e22e; font-weight: bold }
+.highlight .nf { color: #a6e22e }
+.highlight .nl { color: #f8f8f2 }
+.highlight .nn { color: #f8f8f2 }
+.highlight .nx { color: #a6e22e }
+.highlight .py { color: #f8f8f2 }
+.highlight .nt { color: #f92672 }
+.highlight .nv { color: #f8f8f2 }
+.highlight .ow { color: #f92672; font-weight: bold }
+.highlight .w { color: #f8f8f2 }
+.highlight .mb { color: #ae81ff }
+.highlight .mf { color: #ae81ff }
+.highlight .mh { color: #ae81ff }
+.highlight .mi { color: #ae81ff }
+.highlight .mo { color: #ae81ff }
+.highlight .sa { color: #e6db74 }
+.highlight .sb { color: #e6db74 }
+.highlight .sc { color: #e6db74 }
+.highlight .dl { color: #e6db74 }
+.highlight .sd { color: #e6db74 }
+.highlight .s2 { color: #e6db74 }
+.highlight .se { color: #ae81ff; font-weight: bold }
+.highlight .sh { color: #e6db74 }
+.highlight .si { color: #e6db74 }
+.highlight .sx { color: #e6db74 }
+.highlight .sr { color: #e6db74 }
+.highlight .s1 { color: #e6db74 }
+.highlight .ss { color: #e6db74 }
+.highlight .bp { color: #f8f8f2 }
+.highlight .fm { color: #a6e22e }
+.highlight .vc { color: #f8f8f2 }
+.highlight .vg { color: #f8f8f2 }
+.highlight .vi { color: #f8f8f2 }
+.highlight .vm { color: #f8f8f2 }
+.highlight .il { color: #ae81ff }
+
+/* Command highlighting */
+.language-bash .highlight .nb {
+  color: #a6e22e;
+  font-weight: bold;
+}
+
+/* Table enhancements */
+.md-typeset table:not([class]) {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+  font-weight: 600;
+}
+
+.md-typeset table:not([class]) td {
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+}
+
+/* Service category badges */
+.service-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  margin: 2px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.service-badge.database {
+  background-color: #1976d2;
+  color: white;
+}
+
+.service-badge.mail {
+  background-color: #388e3c;
+  color: white;
+}
+
+.service-badge.network {
+  background-color: #f57c00;
+  color: white;
+}
+
+.service-badge.file {
+  background-color: #7b1fa2;
+  color: white;
+}
+
+/* Enhanced admonitions */
+.md-typeset .admonition {
+  border-radius: 6px;
+  border-left: 4px solid;
+}
+
+.md-typeset .admonition.note {
+  border-left-color: #448aff;
+}
+
+.md-typeset .admonition.warning {
+  border-left-color: #ff9100;
+}
+
+.md-typeset .admonition.danger {
+  border-left-color: #ff5252;
+}
+
+.md-typeset .admonition.tip {
+  border-left-color: #69f0ae;
+}
+
+/* Navigation enhancements */
+.md-nav__item--active > .md-nav__link {
+  color: var(--md-accent-fg-color);
+  font-weight: 600;
+}
+
+/* Footer styling */
+.md-footer {
+  background-color: var(--md-primary-fg-color--dark);
+}
+
+/* Custom port highlight */
+.port {
+  background-color: var(--md-accent-fg-color--transparent);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: var(--md-code-font);
+  font-size: 0.9em;
+}
+
+/* Tool command styling */
+.tool-command {
+  background-color: #2d3748;
+  border-left: 3px solid var(--md-accent-fg-color);
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 0 6px 6px 0;
+}
+
+.tool-command code {
+  background-color: transparent;
+  color: #e2e8f0;
+}
+
+/* Methodology step indicators */
+.methodology-step {
+  counter-increment: step-counter;
+  position: relative;
+  margin: 2em 0;
+  padding-left: 3em;
+}
+
+.methodology-step::before {
+  content: counter(step-counter);
+  position: absolute;
+  left: 0;
+  top: 0;
+  background-color: var(--md-accent-fg-color);
+  color: white;
+  width: 2em;
+  height: 2em;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.methodology-container {
+  counter-reset: step-counter;
+}
