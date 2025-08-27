@@ -1,269 +1,329 @@
-# SMB Enumeration
+# SMB Enumeration Cheat Sheet
 
----
+## Ports & Protocols
+```
+139/tcp - NetBIOS Session Service (SMB over NetBIOS)
+445/tcp - SMB over TCP (Direct, modern)
+```
 
-## 1. Ports & Protocols
-
-| Port | Protocol         | Description                        |
-|------|------------------|------------------------------------|
-| 137  | UDP              | NetBIOS Name Service (nbtstat)     |
-| 138  | UDP              | NetBIOS Datagram Service           |
-| 139  | TCP              | NetBIOS Session Service (SMB over NetBIOS) |
-| 445  | TCP              | SMB over TCP (Direct, modern)      |
-
-- **SMB** (Server Message Block): File/printer sharing, inter-process communication.
-- **NetBIOS**: Session layer protocol, often used with SMB for legacy support.
-
----
-
-## 2. SMB Versions & Features
-
-| Version   | OS/Support                        | Key Features/Notes                                 |
-|-----------|-----------------------------------|----------------------------------------------------|
-| CIFS      | Windows NT 4.0, Samba             | NetBIOS interface, legacy, insecure                |
-| SMB 1.0   | Windows 2000, Samba               | Direct TCP, vulnerable, deprecated                 |
-| SMB 2.0   | Vista/2008                        | Perf. upgrades, message signing, caching           |
-| SMB 2.1   | Win7/2008R2                       | Locking improvements                               |
-| SMB 3.0   | Win8/2012, Samba 4                | Multichannel, encryption, remote storage           |
-| SMB 3.1.1 | Win10/2016                        | Integrity checks, AES-128 encryption               |
-
-- **CIFS ≈ SMB1**; modern systems use SMB2/3.
-- **Samba**: Open-source SMB/CIFS for Linux/Unix.
-
----
-
-## 3. Scanning & Discovery
-
-### Nmap
-
+## Quick Discovery
 ```bash
-nmap -v -p 139,445 --script smb-os-discovery,smb-enum-shares,smb-enum-users <target>
-nmap -sV -sC -p139,445 <target>
-```
+# Port scan
+nmap -p 139,445 --open -sV target
 
-- `-p 139,445`: Scan SMB/NetBIOS ports.
-- `-sC`: Default scripts (includes some SMB checks).
-- `--script smb-*`: Use NSE scripts for deep SMB enumeration.
-
-**Useful NSE Scripts:**
-- `smb-os-discovery`: OS/domain info via SMB
-- `smb-enum-shares`: List shares
-- `smb-enum-users`: List users
-- `smb-enum-domains`: List domains
-- `smb-brute`: Brute-force SMB logins
-
-### NetBIOS Name Scan
-
-```bash
-nbtscan -r <target>/24
-```
-- Reveals NetBIOS names, MACs, and roles.
-
----
-
-## 4. Manual Enumeration Tools
-
-### Windows Built-in
-
-```cmd
-net view \\<host> /all
-```
-- Lists shares (including admin shares).
-
-### Linux Tools
-
-#### smbclient
-
-```bash
-smbclient -N -L //<target>         # List shares (null session)
-smbclient //<target>/<share>       # Connect to share
-```
-- `-N`: No password (null session)
-- `-L`: List shares
-
-**smbclient commands:**  
-`ls`, `get`, `put`, `help`, `!<cmd>` (run local shell command)
-
-#### rpcclient
-
-```bash
-rpcclient -U "" <target>
-```
-- Null session, interactive shell
-
-| Command             | Description                        |
-|---------------------|------------------------------------|
-| srvinfo             | Server info                        |
-| enumdomains         | List domains                       |
-| querydominfo        | Domain/server/user info            |
-| netshareenumall     | List all shares                    |
-| netsharegetinfo <s> | Info about a specific share        |
-| enumdomusers        | List domain users                  |
-| queryuser <RID>     | Info about a specific user         |
-| querygroup <RID>    | Info about a group                 |
-
-#### Brute-force User RIDs
-
-```bash
-for i in $(seq 500 1100); do rpcclient -N -U "" <target> -c "queryuser 0x$(printf '%x\n' $i)" | grep "User Name\|user_rid\|group_rid" && echo ""; done
-```
-
-#### SMBMap
-
-```bash
-smbmap -H <target>
-```
-- Lists shares, permissions, comments.
-
-#### CrackMapExec
-
-```bash
-crackmapexec smb <target> --shares -u '' -p ''
-```
-- Enumerates shares, users, OS, signing, SMBv1 status.
-
-#### Enum4linux-ng
-
-```bash
-./enum4linux-ng.py <target> -A
-```
-- Comprehensive enumeration (users, shares, groups, policies, OS, etc.)
-
----
-
-## 5. Samba/SMB Server Config (Linux)
-
-**Config file:** `/etc/samba/smb.conf`
-
-| Setting                | Description                                      |
-|------------------------|--------------------------------------------------|
-| [sharename]            | Name of the share                                |
-| workgroup              | Workgroup/domain                                 |
-| path                   | Directory path                                   |
-| server string          | Server description                               |
-| unix password sync     | Sync UNIX/SMB passwords                          |
-| usershare allow guests | Allow guest access                               |
-| map to guest           | Map bad logins to guest                          |
-| browseable             | Show in share list                               |
-| guest ok               | Allow anonymous access                           |
-| read only              | Read-only share                                  |
-| create mask            | File permissions                                 |
-| directory mask         | Directory permissions                            |
-
-**Dangerous Settings:**
-- `browseable = yes`
-- `read only = no`
-- `writable = yes`
-- `guest ok = yes`
-- `create mask = 0777`
-- `directory mask = 0777`
-
-**Restart Samba:**
-```bash
-sudo systemctl restart smbd
+# Service detection
+nmap -p 139,445 -sC -sV target
 ```
 
 ---
 
-## 6. Typical Default Shares
+## Essential Enumeration Workflow
 
-| Share    | Type | Description                  |
-|----------|------|-----------------------------|
-| ADMIN$   | Disk | Remote admin                |
-| C$       | Disk | Default root share          |
-| IPC$     | IPC  | Inter-process communication |
-| NETLOGON | Disk | Logon server share          |
-| SYSVOL   | Disk | Logon server share          |
+### 1. Host Enumeration
+```bash
+# NetExec - Get OS info, SMB version, signing status
+netexec smb target
 
----
-
-## 7. Attack/Enumeration Flow
-
-### Flowchart
-
-```mermaid
-graph TD
-  A[Start: Port Scan] --> B{Are 139/445 open?}
-  B -- No --> Z[Stop: Not SMB]
-  B -- Yes --> C[Service/OS Detection]
-  C --> D[NetBIOS Name Enumeration]
-  D --> E[Share Enumeration]
-  E --> F[User/Group Enumeration]
-  F --> G[Access Shares]
-  G --> H[Check for Null Sessions]
-  H --> I[Check for Dangerous Configs]
-  I --> J[Document Findings & Exploit]
+# Example output shows: OS, domain, SMB version, signing enabled/disabled
 ```
 
-### Step-by-Step Attack/Enumeration Flow
+### 2. Share Enumeration
 
-1. **Port Scan:**  
-   - Identify if TCP 139/445 are open.
+#### Null Session Attacks
+```bash
+# smbclient - List shares (unauthenticated)
+smbclient -L -N //target
+# VULNERABILITY: Anonymous share enumeration allowed
 
-2. **Service/OS Detection:**  
-   - Use Nmap version scan and NSE scripts to fingerprint SMB and OS.
+# NetExec variations
+netexec smb target --shares
+netexec smb target -u guest -p '' --shares
+netexec smb target -u '' -p '' --shares
+```
 
-3. **NetBIOS Name Enumeration:**  
-   - Use tools like `nbtscan` or `nmblookup` to gather NetBIOS names and workgroup/domain info.
+#### With Credentials
+```bash
+# NetExec with valid creds
+netexec smb target -u username -p password --shares
 
-4. **Share Enumeration:**  
-   - Enumerate available shares using `smbclient`, `rpcclient`, `SMBMap`, or `CrackMapExec`.
+# smbclient with creds
+smbclient -L //target -U username%password
+```
 
-5. **User/Group Enumeration:**  
-   - Enumerate users and groups with `rpcclient`, `enum4linux-ng`, or by brute-forcing RIDs.
+### 3. Share Access
 
-6. **Access Shares:**  
-   - Attempt to access shares, download files, and check permissions using `smbclient` or similar tools.
+#### Null Session Access
+```bash
+# Access share without authentication
+smbclient //target/share -N
+# VULNERABILITY: Anonymous access to sensitive shares
 
-7. **Check for Null Sessions:**  
-   - Test for anonymous or guest access to shares and information.
+# Common shares to test
+smbclient //target/IPC$ -N
+smbclient //target/C$ -N
+smbclient //target/ADMIN$ -N
+```
 
-8. **Check for Dangerous Configurations:**  
-   - Look for guest access, writable shares, and weak permissions.
+#### Authenticated Access
+```bash
+# With username/password
+smbclient //target/share -U username%password
 
-9. **Document Findings & Exploit as Needed:**  
-   - Save all output, document misconfigurations, and proceed with exploitation if permitted.
-
----
-
-## 8. Versions & Tools
-
-### SMB Versions
-
-| Version   | Port(s) | Default? | Notes                        |
-|-----------|---------|----------|------------------------------|
-| SMB1/CIFS | 139     | Legacy   | Deprecated, insecure         |
-| SMB2+     | 445     | Modern   | Secure, supports encryption  |
-
-### Common Tools
-
-| Tool           | Use Case                | Command Example                        |
-|----------------|------------------------|----------------------------------------|
-| nmap           | Port/service scan       | nmap -p139,445 -sC -sV <target>        |
-| nbtscan        | NetBIOS names           | nbtscan -r <target>/24                 |
-| smbclient      | List/connect shares     | smbclient -N -L //<target>             |
-| rpcclient      | Deep enum, users/groups | rpcclient -U "" <target>               |
-| smbmap         | Share/perm enum         | smbmap -H <target>                     |
-| crackmapexec   | Enum, brute, shares     | crackmapexec smb <target> --shares     |
-| enum4linux-ng  | All-in-one enum         | ./enum4linux-ng.py <target> -A         |
+# Kerberos authentication
+smbclient.py 'domain/user:pass@target' -k -no-pass
+```
 
 ---
 
-## 9. Key Points to Remember
+## File Enumeration Techniques
 
-- **SMB/NetBIOS are separate but related.**
-- **Null sessions** (anonymous access) are often possible on misconfigured systems.
-- **Always check for writable shares and guest access.**
-- **RID brute-forcing** can reveal users even if listing is blocked.
-- **Samba config** can be a goldmine for misconfigurations.
-- **Automated tools** are great, but always verify manually for hidden/edge cases.
+### smbclient Commands
+```bash
+# Once connected to a share:
+ls                    # List files
+cd directory         # Change directory
+get filename         # Download file
+put filename         # Upload file
+help                 # Show all commands
+!command             # Execute local shell command
+```
+
+### Automated File Discovery
+```bash
+# NetExec spider module
+netexec smb target -u user -p pass -M spider_plus
+
+# Output saved to /tmp/nxc_spider_plus/target.json
+```
+
+### Mass File Search
+```bash
+# MANSPIDER - Search for sensitive files
+manspider --threads 256 target -u username -p password --filetype pdf,doc,docx,xls,xlsx
+```
 
 ---
 
-**Tip:**  
-Always save your enumeration output for later review and evidence.  
-Use `-oN`/`-oG`/`-oA` with nmap, and redirect tool output to files.
+## User Enumeration
+
+### RID Cycling
+```bash
+# Impacket lookupsid
+lookupsid.py guest@target -no-pass
+
+# NetExec RID brute force
+netexec smb target -u guest -p '' --rid-brute
+
+# Manual RID cycling with rpcclient
+rpcclient -U "" target
+rpcclient $> lookupsids S-1-5-21-[DOMAIN-SID]-500
+```
+
+### SAM Remote Protocol
+```bash
+# Dump user information via SAM
+samrdump.py domain/user:pass@target
+```
+
+### Manual User Enumeration
+```bash
+# rpcclient interactive session
+rpcclient -U "" target
+
+# Common rpcclient commands:
+enumdomusers         # List domain users
+queryuser [RID]      # Get user details
+enumdomgroups        # List domain groups
+querygroup [RID]     # Get group details
+```
 
 ---
 
-*This cheat sheet is designed for fast, effective SMB enumeration and exploitation in a pentest/OSCP context.*
+## Vulnerability Scanning
+```bash
+# Nmap SMB vulnerability scripts
+nmap --script smb-vuln* -p 139,445 target
+
+# Common vulnerabilities to check:
+# - MS17-010 (EternalBlue)
+# - MS08-067 (Conficker)
+# - MS06-025
+```
+
+---
+
+## Common Default Shares
+
+| Share    | Type | Description | Risk Level |
+|----------|------|-------------|------------|
+| ADMIN$   | Disk | Remote admin | HIGH |
+| C$       | Disk | Default root share | HIGH |
+| IPC$     | IPC  | Inter-process communication | MEDIUM |
+| NETLOGON | Disk | Logon server share | MEDIUM |
+| SYSVOL   | Disk | Domain policies | MEDIUM |
+
+---
+
+## Attack Scenarios
+
+### Scenario 1: Null Session Share Access
+```bash
+# Discovery
+smbclient -L -N //target
+
+# Access attempt
+smbclient //target/Users -N
+# If successful: VULNERABILITY - Anonymous access to user directories
+```
+
+### Scenario 2: Guest Account Enumeration
+```bash
+# Share enumeration
+netexec smb target -u guest -p '' --shares
+
+# User enumeration
+netexec smb target -u guest -p '' --rid-brute
+# If successful: VULNERABILITY - Information disclosure via guest account
+```
+
+### Scenario 3: Authenticated Enumeration
+```bash
+# Full enumeration with valid creds
+netexec smb target -u user -p pass --shares
+netexec smb target -u user -p pass -M spider_plus
+samrdump.py domain/user:pass@target
+```
+
+---
+
+## Key Security Issues to Look For
+
+### High-Risk Configurations
+- **Anonymous share listing**: `smbclient -L -N //target` succeeds
+- **Guest account enabled**: Authentication with guest:'' works
+- **Writable shares**: Upload capabilities without authentication
+- **Sensitive file exposure**: Config files, backups in accessible shares
+- **SMBv1 enabled**: Legacy protocol with known vulnerabilities
+
+### Common Misconfigurations
+```bash
+# Check for writable shares
+echo "test" | smbclient //target/share -N -c "put - test.txt"
+
+# Look for backup files
+# .bak, .old, .backup extensions in shares
+
+# Check for configuration files
+# web.config, database.conf, etc.
+```
+
+---
+
+## Advanced Techniques
+
+### Kerberos Authentication
+```bash
+# When NTLM is disabled
+netexec smb target -k -u user -p pass
+
+# Impacket with Kerberos
+smbclient.py 'domain/user:pass@target' -k -no-pass
+```
+
+### Password Spraying
+```bash
+# Test common passwords against user list
+netexec smb target -u users.txt -p 'Password123' --continue-on-success
+```
+
+---
+
+## Quick Reference Commands
+
+### Initial Discovery
+```bash
+nmap -p 139,445 --open target
+netexec smb target
+```
+
+### Share Enumeration
+```bash
+smbclient -L -N //target
+netexec smb target -u guest -p '' --shares
+```
+
+### File Access
+```bash
+smbclient //target/share -N
+smbclient //target/share -U user%pass
+```
+
+### User Enumeration
+```bash
+lookupsid.py guest@target -no-pass
+netexec smb target -u guest -p '' --rid-brute
+```
+
+### Vulnerability Scan
+```bash
+nmap --script smb-vuln* -p 139,445 target
+```
+
+---
+
+## Testing Checklist
+
+#### Discovery
+- [ ] Port 139/445 open
+- [ ] SMB version identification
+- [ ] OS fingerprinting
+- [ ] Domain information
+
+#### Authentication Testing
+- [ ] Null session access
+- [ ] Guest account access
+- [ ] Anonymous share listing
+- [ ] Default credentials
+
+#### Share Enumeration
+- [ ] List all available shares
+- [ ] Test access to each share
+- [ ] Identify writable shares
+- [ ] Check share permissions
+
+#### File Discovery
+- [ ] Enumerate files in accessible shares
+- [ ] Search for sensitive files
+- [ ] Download interesting files
+- [ ] Check for backup files
+
+#### User Enumeration
+- [ ] RID cycling attack
+- [ ] SAM remote protocol
+- [ ] Domain user listing
+- [ ] User detail extraction
+
+#### Vulnerability Assessment
+- [ ] SMB vulnerability scan
+- [ ] SMBv1 detection
+- [ ] Signing requirements
+- [ ] Known CVE checks
+
+---
+
+## Critical Vulnerabilities
+
+### Anonymous Access
+- **Impact**: Information disclosure, potential data theft
+- **Detection**: `smbclient -L -N //target` succeeds
+- **Exploitation**: Access sensitive shares without authentication
+
+### Guest Account Enabled
+- **Impact**: User enumeration, share access
+- **Detection**: `netexec smb target -u guest -p ''` succeeds
+- **Exploitation**: RID cycling, share enumeration
+
+### Writable Shares
+- **Impact**: File upload, potential malware deployment
+- **Detection**: Successful file upload to share
+- **Exploitation**: Upload webshells, malicious executables
