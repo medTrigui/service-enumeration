@@ -1,5 +1,38 @@
 # SMB Enumeration Cheat Sheet
 
+## Table of Contents
+1. [Ports & Protocols](#ports--protocols)
+2. [Quick Discovery](#quick-discovery)
+3. [Essential Enumeration Workflow](#essential-enumeration-workflow)
+   - [Host Enumeration](#1-host-enumeration)
+   - [Share Enumeration](#2-share-enumeration)
+   - [Share Access](#3-share-access)
+4. [File Enumeration Techniques](#file-enumeration-techniques)
+   - [smbclient Commands](#smbclient-commands)
+   - [Automated File Discovery](#automated-file-discovery)
+   - [Mass File Search](#mass-file-search)
+5. [User Enumeration](#user-enumeration)
+   - [RID Cycling](#rid-cycling)
+   - [SAM Remote Protocol](#sam-remote-protocol)
+   - [Manual User Enumeration](#manual-user-enumeration)
+6. [Vulnerability Scanning](#vulnerability-scanning)
+7. [Common Default Shares](#common-default-shares)
+8. [Attack Scenarios](#attack-scenarios)
+   - [Null Session Share Access](#scenario-1-null-session-share-access)
+   - [Guest Account Enumeration](#scenario-2-guest-account-enumeration)
+   - [Authenticated Enumeration](#scenario-3-authenticated-enumeration)
+9. [Key Security Issues](#key-security-issues-to-look-for)
+   - [High-Risk Configurations](#high-risk-configurations)
+   - [Common Misconfigurations](#common-misconfigurations)
+10. [Advanced Techniques](#advanced-techniques)
+    - [Kerberos Authentication](#kerberos-authentication)
+    - [Password Spraying](#password-spraying)
+11. [Quick Reference Commands](#quick-reference-commands)
+12. [Testing Checklist](#testing-checklist)
+13. [Critical Vulnerabilities](#critical-vulnerabilities)
+
+---
+
 ## Ports & Protocols
 ```
 139/tcp - NetBIOS Session Service (SMB over NetBIOS)
