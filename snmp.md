@@ -1,184 +1,459 @@
-# SNMP Enumeration
+# SNMP Enumeration Cheat Sheet
+
+## Table of Contents
+1. [Overview](#overview)
+2. [Ports & Protocols](#ports--protocols)
+3. [Quick Discovery](#quick-discovery)
+4. [Essential Enumeration Workflow](#essential-enumeration-workflow)
+5. [SNMP Versions & Security](#snmp-versions--security)
+6. [Windows-Specific Enumeration](#windows-specific-enumeration)
+7. [Common OID Reference](#common-oid-reference)
+8. [Automated Tools](#automated-tools)
+9. [Quick Reference Commands](#quick-reference-commands)
+10. [Testing Checklist](#testing-checklist)
+11. [Critical Security Issues](#critical-security-issues)
 
 ---
 
-## 1. Ports & Protocols
+## Overview
 
-| Port | Protocol | Description                                  |
-|------|----------|----------------------------------------------|
-| 161  | UDP      | SNMP (Simple Network Management Protocol)    |
-| 162  | UDP      | SNMP Trap (asynchronous notifications)       |
+**SNMP (Simple Network Management Protocol)** is a network protocol for monitoring and managing network devices including routers, switches, servers, and IoT devices. It operates over UDP and provides extensive system information through a hierarchical database structure.
 
-- **SNMP** is used for monitoring and managing network devices (routers, switches, servers, IoT, etc.).
-- **SNMP Traps** (UDP 162) are alerts sent from agents to managers.
+### Why SNMP Matters in Pentesting
+- **Information Disclosure**: Reveals extensive system information
+- **Weak Authentication**: Often uses default community strings  
+- **Network Mapping**: Exposes network topology and devices
+- **Credential Harvesting**: May contain usernames and system details
+- **Legacy Security**: Older versions lack proper encryption
 
----
-
-## 2. SNMP Versions & Security
-
-| Version  | Security Features         | Notes                                                      |
-|----------|--------------------------|------------------------------------------------------------|
-| SNMPv1   | None                     | No encryption, no authentication, plaintext community      |
-| SNMPv2c  | None                     | Same as v1, adds bulk requests, plaintext community        |
-| SNMPv3   | Auth & Encryption        | Supports authentication (user/pass) and encryption (AES/3DES), but can be complex to configure |
-
-- **Community Strings**: Act as passwords ("public" = read-only, "private" = read-write by default).
-- **Default strings** are often left unchanged, leading to easy compromise.
-- **SNMPv3** is more secure but less commonly deployed due to complexity.
+### Common Attack Vectors
+- **Default Community Strings**: "public" and "private" often unchanged
+- **Community String Brute Force**: Weak authentication mechanisms
+- **Information Enumeration**: System users, processes, network configuration
+- **Write Access Exploitation**: Device reconfiguration capabilities
 
 ---
 
-## 3. SNMP MIB, OID, and Data
+## Ports & Protocols
 
-- **MIB (Management Information Base):** Hierarchical database of network objects/devices, described in text files.
-- **OID (Object Identifier):** Numeric address for each MIB object (e.g., `1.3.6.1.2.1.25.1.6.0` for System Processes).
-- **Common OIDs for Windows:**
+```
+161/udp - SNMP (Simple Network Management Protocol)
+162/udp - SNMP Trap (asynchronous notifications)
+```
 
-| OID                        | Description         |
-|----------------------------|--------------------|
-| 1.3.6.1.2.1.25.1.6.0       | System Processes   |
-| 1.3.6.1.2.1.25.4.2.1.2     | Running Programs   |
-| 1.3.6.1.2.1.25.4.2.1.4     | Processes Path     |
-| 1.3.6.1.2.1.25.2.3.1.4     | Storage Units      |
-| 1.3.6.1.2.1.25.6.3.1.2     | Software Name      |
-| 1.3.6.1.4.1.77.1.2.25      | User Accounts      |
-| 1.3.6.1.2.1.6.13.1.3       | TCP Local Ports    |
+### SNMP Versions
+| Version | Authentication | Encryption | Security Level |
+|---------|---------------|------------|----------------|
+| **SNMPv1** | Community strings | None | Very Low |
+| **SNMPv2c** | Community strings | None | Very Low |  
+| **SNMPv3** | Username/Password | AES/3DES | High |
 
 ---
 
-## 4. Scanning & Discovery
-
-### Nmap
+## Quick Discovery
 
 ```bash
-sudo nmap -sU --open -p 161 <target-range> -oG open-snmp.txt
+# UDP port scan for SNMP
+nmap -sU --open -p 161 target
+
+# SNMP service detection
+nmap -sU -p 161 --script=snmp-info target
+
+# Comprehensive SNMP discovery
+nmap -sU -p 161 --script=snmp-* target
 ```
-- Scans for open SNMP ports (UDP 161).
 
-### onesixtyone
+---
 
+## Essential Enumeration Workflow
+
+### Community String Discovery
 ```bash
-onesixtyone -c community.txt -i ips.txt
+# Test common default strings
+snmpwalk -c public -v1 target
+snmpwalk -c private -v1 target
+snmpwalk -c community -v1 target
+
+# Brute force community strings
+onesixtyone -c community.txt target
+onesixtyone -i targets.txt -c community.txt
+
+# Create community wordlist
+echo -e "public\nprivate\ncommunity\nmanager\nadmin\ndefault\nsnmp\nmonitor" > community.txt
+
+# Nmap brute force
+nmap -sU -p 161 --script=snmp-brute target
 ```
-- Brute-forces SNMP community strings across IPs.
 
----
-
-## 5. Manual Enumeration Tools
-
-### snmpwalk
-
+### Complete MIB Enumeration
 ```bash
-snmpwalk -c public -v1 <target>
-snmpwalk -c public -v1 <target> <OID>
+# Walk entire MIB tree
+snmpwalk -c public -v1 target
+
+# Walk specific branches
+snmpwalk -c public -v1 target 1.3.6.1.2.1.1    # System info
+snmpwalk -c public -v1 target 1.3.6.1.2.1.25   # Host resources
+snmpwalk -c public -v1 target 1.3.6.1.4.1.77    # Windows-specific
+
+# Bulk operations (SNMPv2c)
+snmpbulkwalk -c public -v2c target
+
+# BRAA for fast enumeration
+braa public@target:.1.3.6.*
 ```
-- Enumerates the entire MIB tree or a specific OID branch.
 
-### onesixtyone
-
+### System Information Gathering
 ```bash
-onesixtyone -c <community-list> <target>
+# System description
+snmpget -c public -v1 target 1.3.6.1.2.1.1.1.0
+
+# System uptime
+snmpwalk -c public -v1 target 1.3.6.1.2.1.1.3.0
+
+# Hostname
+snmpwalk -c public -v1 target 1.3.6.1.2.1.1.5
+
+# System contact
+snmpget -c public -v1 target 1.3.6.1.2.1.1.4.0
 ```
-- Brute-forces community strings.
 
-### braa
+---
 
+## SNMP Versions & Security
+
+### SNMPv1/v2c (Insecure)
 ```bash
-braa public@<target>:.1.3.6.*
-```
-- Brute-forces OIDs for information.
+# SNMPv1 enumeration
+snmpwalk -v1 -c public target
 
----
+# SNMPv2c enumeration  
+snmpwalk -v2c -c public target
 
-## 6. SNMP Daemon Config & Security
-
-**Config file:** `/etc/snmp/snmpd.conf`
-
-| Setting                | Description                                      |
-|------------------------|--------------------------------------------------|
-| sysLocation            | Device location                                  |
-| sysContact             | Admin contact                                    |
-| sysServices            | Service type                                     |
-| agentaddress           | Listening IP/port                                |
-| rocommunity            | Read-only community string                       |
-| rwcommunity            | Read-write community string                      |
-| rouser                 | SNMPv3 user                                      |
-
-**Dangerous Settings:**
-- `rwcommunity <community> <IP>`: Full write access from any IP.
-- `rwuser noauth`: Full access without authentication.
-
-**Mitigations:**
-- Use SNMPv3 with strong auth and encryption.
-- Restrict community strings and allowed IPs.
-- Change default community strings.
-- Limit OID views.
-
----
-
-## 7. Typical Enumeration Flow
-
-### Flowchart
-
-```mermaid
-graph TD
-  A[Start: Port Scan] --> B{Is UDP 161 open?}
-  B -- No --> Z[Stop: Not SNMP]
-  B -- Yes --> C[Brute-force Community Strings]
-  C --> D[Enumerate MIB/OIDs]
-  D --> E[Extract System/Network Info]
-  E --> F[Check for Write Access]
-  F --> G[Document Findings & Exploit]
+# VULNERABILITY: Plaintext community strings, no encryption
 ```
 
-### Step-by-Step Attack/Enumeration Flow
+### SNMPv3 (Secure)
+```bash
+# SNMPv3 with authentication
+snmpwalk -v3 -u username -A password -l authNoPriv target
 
-1. **Port Scan:**  
-   - Identify if UDP 161 is open.
+# SNMPv3 with authentication and encryption
+snmpwalk -v3 -u username -A authpass -X privpass -l authPriv target
+```
 
-2. **Brute-force Community Strings:**  
-   - Use `onesixtyone` or wordlists to find valid community strings.
+### Write Access Testing
+```bash
+# Test with private community string
+snmpset -c private -v1 target 1.3.6.1.2.1.1.4.0 s "Test Contact"
 
-3. **Enumerate MIB/OIDs:**  
-   - Use `snmpwalk`, `snmpget`, or `braa` to enumerate system info, users, processes, software, open ports, etc.
-
-4. **Extract System/Network Info:**  
-   - Look for usernames, running processes, installed software, network config, open ports, etc.
-
-5. **Check for Write Access:**  
-   - If `private` or other RW community string is found, attempt to write/change config.
-
-6. **Document Findings & Exploit:**  
-   - Save all output, note valid strings, misconfigurations, and possible exploits.
+# Verify write access
+snmpget -c private -v1 target 1.3.6.1.2.1.1.4.0
+```
 
 ---
 
-## 8. Useful Tools
+## Windows-Specific Enumeration
 
-| Tool         | Use Case                | Command Example                        |
-|--------------|------------------------|----------------------------------------|
-| nmap         | Port/service scan       | nmap -sU -p161 <target>                |
-| snmpwalk     | Enumerate MIB/OIDs      | snmpwalk -c public -v1 <target>        |
-| snmpget      | Query specific OID      | snmpget -c public -v1 <target> <OID>   |
-| onesixtyone  | Brute-force communities | onesixtyone -c community.txt <target>  |
-| braa         | Brute-force OIDs        | braa public@<target>:.1.3.6.*          |
+### User Account Information
+```bash
+# Windows user accounts
+snmpwalk -c public -v1 target 1.3.6.1.4.1.77.1.2.25
+
+# Enumerate specific users
+for i in {1..20}; do 
+    snmpget -c public -v1 target 1.3.6.1.4.1.77.1.2.25.1.1.$i
+done
+```
+
+### Process and Service Information
+```bash
+# Running programs/processes
+snmpwalk -c public -v1 target 1.3.6.1.2.1.25.4.2.1.2
+
+# Process paths
+snmpwalk -c public -v1 target 1.3.6.1.2.1.25.4.2.1.4
+
+# Windows services via Nmap
+nmap -sU -p 161 --script=snmp-win32-services target
+```
+
+### Network and Share Information
+```bash
+# Windows hostname
+snmpwalk -c public -v1 target 1.3.6.1.2.1.1.5
+
+# Windows share information (method 1)
+snmpwalk -c public -v1 target 1.3.6.1.4.1.77.1.2.3.1.1
+
+# Windows share information (method 2)
+snmpwalk -c public -v1 target 1.3.6.1.4.1.77.1.2.27
+
+# Windows shares via Nmap
+nmap -sU -p 161 --script=snmp-win32-shares target
+
+# TCP listening ports
+snmpwalk -c public -v1 target 1.3.6.1.2.1.6.13.1.3
+```
+
+### Software Information
+```bash
+# Installed software names
+snmpwalk -c public -v1 target 1.3.6.1.2.1.25.6.3.1.2
+
+# Software installation paths
+snmpwalk -c public -v1 target 1.3.6.1.2.1.25.6.3.1.4
+
+# System processes count
+snmpwalk -c public -v1 target 1.3.6.1.2.1.25.1.6.0
+```
+
+### Network Configuration
+```bash
+# Network interfaces
+snmpwalk -c public -v1 target 1.3.6.1.2.1.2.2.1.2
+
+# IP addresses
+snmpwalk -c public -v1 target 1.3.6.1.2.1.4.20.1.1
+
+# TCP connections
+snmpwalk -c public -v1 target 1.3.6.1.2.1.6.13.1.3
+
+# Network statistics via Nmap
+nmap -sU -p 161 --script=snmp-netstat target
+```
 
 ---
 
-## 9. Key Points to Remember
+## Common OID Reference
 
-- **SNMPv1/v2c** are insecure: plaintext, weak/no auth.
-- **Community strings** are often left at defaults ("public"/"private").
-- **MIB/OID** enumeration can reveal users, processes, software, open ports, and more.
-- **RW access** can allow device reconfiguration or compromise.
-- **Always document** valid strings, OIDs, and findings.
+### System Information OIDs
+```
+1.3.6.1.2.1.1.1.0    - System Description
+1.3.6.1.2.1.1.3.0    - System Uptime
+1.3.6.1.2.1.1.4.0    - System Contact
+1.3.6.1.2.1.1.5.0    - System Name/Hostname
+1.3.6.1.2.1.1.6.0    - System Location
+```
+
+### Windows-Specific OIDs
+```
+1.3.6.1.4.1.77.1.2.25     - Windows User Accounts
+1.3.6.1.2.1.25.4.2.1.2    - Running Programs/Processes
+1.3.6.1.2.1.25.4.2.1.4    - Process Paths
+1.3.6.1.4.1.77.1.2.3.1.1  - Windows Share Information
+1.3.6.1.4.1.77.1.2.27     - Windows Share Information (alt)
+1.3.6.1.2.1.6.13.1.3      - TCP Local Ports
+1.3.6.1.2.1.25.6.3.1.2    - Software Names
+1.3.6.1.2.1.25.1.6.0      - System Processes Count
+```
+
+### Network Information OIDs
+```
+1.3.6.1.2.1.2.2.1.2       - Network Interfaces
+1.3.6.1.2.1.4.20.1.1      - IP Addresses
+1.3.6.1.2.1.4.21.1.1      - Routing Table
+1.3.6.1.2.1.4.22.1.2      - ARP Table
+1.3.6.1.2.1.7.5.1.2       - UDP Listeners
+```
 
 ---
 
-**Tip:**  
-Always save your enumeration output for later review and evidence.  
-Use `-oN`/`-oG`/`-oA` with nmap, and redirect tool output to files.
+## Automated Tools
+
+### snmp-check
+```bash
+# Comprehensive SNMP enumeration
+snmp-check target
+snmp-check target -c public
+snmp-check target -c private
+
+# Specify custom community string
+snmp-check target -c custom_community
+```
+
+### Nmap NSE Scripts
+```bash
+# System description
+nmap -sU -p 161 --script=snmp-sysdescr target
+
+# Process enumeration
+nmap -sU -p 161 --script=snmp-processes target
+
+# Network interface information
+nmap -sU -p 161 --script=snmp-interfaces target
+
+# SNMP brute force
+nmap -sU -p 161 --script=snmp-brute target
+
+# Windows-specific scripts
+nmap -sU -p 161 --script=snmp-win32-services target
+nmap -sU -p 161 --script=snmp-win32-shares target
+```
+
+### Mass SNMP Scanning
+```bash
+# Scan multiple targets
+onesixtyone -i targets.txt -c community.txt
+
+# Nmap across ranges
+nmap -sU -p 161 --script=snmp-info 192.168.1.0/24
+
+# Save results for analysis
+onesixtyone -i targets.txt -c community.txt -o snmp_results.txt
+```
 
 ---
 
-*This cheat sheet is designed for fast, effective SNMP enumeration and exploitation in a pentest/OSCP context.*
+## Quick Reference Commands
+
+### Discovery
+```bash
+nmap -sU -p 161 --script=snmp-info target
+onesixtyone -c community.txt target
+snmp-check target
+```
+
+### Basic Enumeration
+```bash
+snmpwalk -c public -v1 target
+snmpwalk -c public -v1 target 1.3.6.1.2.1.1
+snmpget -c public -v1 target 1.3.6.1.2.1.1.1.0
+```
+
+### Windows-Specific
+```bash
+snmpwalk -c public -v1 target 1.3.6.1.4.1.77.1.2.25    # Users
+snmpwalk -c public -v1 target 1.3.6.1.2.1.25.4.2.1.2   # Processes
+snmpwalk -c public -v1 target 1.3.6.1.4.1.77.1.2.27    # Shares
+```
+
+### Network Information
+```bash
+snmpwalk -c public -v1 target 1.3.6.1.2.1.4.20.1.1     # IP addresses
+snmpwalk -c public -v1 target 1.3.6.1.2.1.6.13.1.3     # TCP ports
+snmpwalk -c public -v1 target 1.3.6.1.2.1.2.2.1.2      # Interfaces
+```
+
+---
+
+## Testing Checklist
+
+#### Discovery & Detection
+- [ ] UDP port 161 open and responding
+- [ ] SNMP version identification
+- [ ] Community string enumeration
+- [ ] SNMPv3 user discovery (if applicable)
+
+#### Authentication Testing
+- [ ] Default community string testing
+- [ ] Community string brute force
+- [ ] SNMPv3 authentication testing
+- [ ] Write access verification
+
+#### Information Enumeration
+- [ ] System information gathering
+- [ ] User account enumeration
+- [ ] Process and service discovery
+- [ ] Network configuration extraction
+- [ ] Installed software identification
+
+#### Windows-Specific Testing
+- [ ] User account enumeration
+- [ ] Share information gathering
+- [ ] Running process identification
+- [ ] Service enumeration
+
+#### Security Assessment
+- [ ] Community string strength
+- [ ] SNMP version security
+- [ ] Information disclosure assessment
+- [ ] Write access implications
+
+---
+
+## Critical Security Issues
+
+### Default Community Strings
+- **Impact**: Complete system information disclosure
+- **Detection**: Successful authentication with "public"/"private"
+- **Exploitation**: `snmpwalk -c public -v1 target`
+
+### Information Disclosure
+- **Impact**: Reconnaissance data, user enumeration, network mapping
+- **Detection**: Successful SNMP queries returning sensitive data
+- **Exploitation**: User account discovery, process enumeration
+
+### Write Access Vulnerability
+- **Impact**: Device reconfiguration, service disruption
+- **Detection**: Successful SNMP SET operations
+- **Exploitation**: `snmpset -c private -v1 target 1.3.6.1.2.1.1.4.0 s "Test"`
+
+### SNMPv1/v2c Usage
+- **Impact**: Credential interception, man-in-the-middle attacks
+- **Detection**: SNMP version identification
+- **Exploitation**: Network traffic analysis, credential harvesting
+
+### Weak Community Strings
+- **Impact**: Unauthorized access, information disclosure
+- **Detection**: Successful brute force attacks
+- **Exploitation**: Complete SNMP access with guessable credentials
+
+---
+
+## Community String Wordlists
+
+### Common Default Strings
+```
+public
+private
+community
+manager
+admin
+default
+snmp
+monitor
+guest
+cisco
+read
+write
+test
+security
+network
+```
+
+### Wordlist Locations
+- SecLists: `/SecLists/Discovery/SNMP/snmp_default_pass.txt`
+- SecLists: `/SecLists/Discovery/SNMP/snmp_default_community_strings.txt`
+- Custom list: Create based on target environment
+
+---
+
+## Advanced Techniques
+
+### Custom OID Queries
+```bash
+# Query specific OIDs
+snmpget -c public -v1 target 1.3.6.1.2.1.1.1.0    # sysDescr
+snmpget -c public -v1 target 1.3.6.1.2.1.1.5.0    # sysName
+
+# Walk OID ranges
+for oid in $(seq 1 100); do
+    snmpget -c public -v1 target 1.3.6.1.2.1.1.$oid.0 2>/dev/null
+done
+```
+
+### SNMP Write Operations
+```bash
+# Modify system contact (if write access available)
+snmpset -c private -v1 target 1.3.6.1.2.1.1.4.0 s "Attacker Contact"
+
+# Test for dangerous write access
+snmpset -c private -v1 target 1.3.6.1.2.1.1.4.0 s "Test"
+```
+
+### Information Extraction
+```bash
+# Extract potentially sensitive data
+snmpwalk -c public -v1 target 1.3.6.1.4.1.77.1.2.25 | grep -i admin
+snmpwalk -c public -v1 target 1.3.6.1.2.1.25.4.2.1.2 | grep -i sql
+```
