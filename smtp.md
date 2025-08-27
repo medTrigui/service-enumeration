@@ -220,7 +220,7 @@ EHLO attacker.com
 250-ENHANCEDSTATUSCODES
 250 8BITMIME
 
-VRFY root
+  VRFY root
 250 2.1.5 root <root@target.com>
 
 VRFY admin
@@ -325,7 +325,7 @@ def smtp_vrfy(target, port, users):
             else:
                 print(f"[?] Uncertain: {user} - {result.strip()}")
                 
-            s.close()
+s.close()
         except:
             print(f"[!] Error connecting to {target}:{port}")
 
