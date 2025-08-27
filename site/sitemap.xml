@@ -1,67 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/contributing/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/contributing/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/quick-start/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/quick-start/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/database/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/database/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/database/mysql/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/database/mysql/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/database/oracle-tns/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/database/oracle-tns/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/file/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/file/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/file/nfs/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/file/nfs/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/file/smb/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/file/smb/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/mail/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/mail/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/mail/imap-pop3/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/mail/imap-pop3/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/mail/smtp/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/mail/smtp/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/network/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/network/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/network/snmp/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/network/snmp/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/resources/references/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/resources/references/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
     <url>
-         <loc>https://yourusername.github.io/service-enumeration/resources/tools/</loc>
+         <loc>https://medTrigui.github.io/service-enumeration/resources/tools/</loc>
          <lastmod>2025-08-27</lastmod>
     </url>
 </urlset>

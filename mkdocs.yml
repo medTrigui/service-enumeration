@@ -1,11 +1,11 @@
 site_name: Service Enumeration Cheat Sheets
 site_description: Professional penetration testing reference guides for systematic service discovery and exploitation
 site_author: Security Professional
-site_url: https://yourusername.github.io/service-enumeration
+site_url: https://medTrigui.github.io/service-enumeration
 
 # Repository
-repo_name: yourusername/service-enumeration
-repo_url: https://github.com/yourusername/service-enumeration
+repo_name: medTrigui/service-enumeration
+repo_url: https://github.com/medTrigui/service-enumeration
 edit_uri: edit/main/docs/
 
 # Copyright
