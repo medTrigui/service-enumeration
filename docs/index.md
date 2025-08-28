@@ -23,6 +23,7 @@ All cheat sheets follow this proven approach:
 Critical database systems that often contain sensitive information and provide pathways for privilege escalation.
 
 - **[MySQL](database/mysql.md)** - Open-source relational database management system
+- **[MSSQL](database/mssql.md)** - Microsoft SQL Server for Windows environments
 - **[Oracle TNS](database/oracle-tns.md)** - Enterprise database with extensive attack surface
 
 ### Mail Services

@@ -25,6 +25,17 @@ Open-source relational database management system commonly found in web applicat
 
 [View MySQL Cheat Sheet](mysql.md)
 
+### MSSQL (Port 1433)
+Microsoft SQL Server database commonly found in Windows environments.
+
+**Key Attack Vectors:**
+- xp_cmdshell command execution
+- Windows authentication bypass
+- Database link exploitation
+- OLE automation procedures
+
+[View MSSQL Cheat Sheet](mssql.md)
+
 ### Oracle TNS (Port 1521)
 Enterprise database system with extensive functionality and complex security model.
 
