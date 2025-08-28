@@ -150,6 +150,7 @@ nav:
     - SNMP: network/snmp.md
   - File Services:
     - Overview: file/index.md
+    - FTP: file/ftp.md
     - SMB: file/smb.md
     - NFS: file/nfs.md
   - Resources:

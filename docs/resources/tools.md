@@ -54,6 +54,11 @@ curl -k 'imaps://target' --user user:pass
 
 ### File Service Tools
 ```bash
+# FTP
+ftp target
+wget -m --no-passive ftp://anonymous:anonymous@target
+curlftpfs ftp-user:pass@target /mnt/ftp
+
 # SMB
 enum4linux target
 smbclient -L //target -N
@@ -140,6 +145,7 @@ apt-get install -y nmap hydra smbclient nfs-common snmp-mibs-downloader
 | Service | Primary Tool | Command |
 |---------|--------------|---------|
 | **Discovery** | nmap | `nmap -sV target` |
+| **FTP** | ftp | `ftp target` |
 | **SMB** | enum4linux | `enum4linux target` |
 | **SNMP** | snmpwalk | `snmpwalk -c public -v1 target` |
 | **Database** | mysql/sqlcmd | `mysql -h target -u root -p` |

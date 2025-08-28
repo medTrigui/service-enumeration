@@ -43,6 +43,7 @@ Core network services that provide system information and management capabilitie
 
 Network file sharing protocols that often have misconfigurations leading to unauthorized access.
 
+- **[FTP](file/ftp.md)** - File Transfer Protocol for basic file operations
 - **[SMB](file/smb.md)** - Server Message Block protocol for Windows file sharing
 - **[NFS](file/nfs.md)** - Network File System for Unix/Linux environments
 

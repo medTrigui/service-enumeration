@@ -10,13 +10,15 @@ Professional penetration testing reference guides for systematic service discove
 
 | Service | Port(s) | Description |
 |---------|---------|-------------|
-| [MySQL](mysql.md) | 3306 | Database enumeration, credential attacks, file operations |
-| [Oracle TNS](oracle-tns.md) | 1521 | SID enumeration, SYSDBA escalation, ODAT framework |
-| [SMTP](smtp.md) | 25, 465, 587 | User enumeration, open relay testing, authentication bypass |
-| [IMAP/POP3](imap-pop3.md) | 143, 993, 110, 995 | Email access, credential attacks, SSL testing |
-| [SNMP](snmp.md) | 161, 162 | Community strings, MIB walking, Windows enumeration |
-| [SMB](smb.md) | 445, 139 | Share enumeration, null sessions, RID cycling |
-| [NFS](nfs.md) | 2049, 111 | Mount operations, UID manipulation, privilege escalation |
+| [MySQL](docs/database/mysql.md) | 3306 | Database enumeration, credential attacks, file operations |
+| [MSSQL](docs/database/mssql.md) | 1433 | xp_cmdshell execution, Windows auth, database links |
+| [Oracle TNS](docs/database/oracle-tns.md) | 1521 | SID enumeration, SYSDBA escalation, ODAT framework |
+| [SMTP](docs/mail/smtp.md) | 25, 465, 587 | User enumeration, open relay testing, authentication bypass |
+| [IMAP/POP3](docs/mail/imap-pop3.md) | 143, 993, 110, 995 | Email access, credential attacks, SSL testing |
+| [SNMP](docs/network/snmp.md) | 161, 162 | Community strings, MIB walking, Windows enumeration |
+| [FTP](docs/file/ftp.md) | 21, 20 | Anonymous access, file upload, brute force attacks |
+| [SMB](docs/file/smb.md) | 445, 139 | Share enumeration, null sessions, RID cycling |
+| [NFS](docs/file/nfs.md) | 2049, 111 | Mount operations, UID manipulation, privilege escalation |
 
 ## Usage
 
@@ -50,7 +52,7 @@ snmpwalk -c public -v1 target
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/service-enumeration.git
+git clone https://github.com/medTrigui/service-enumeration.git
 cd service-enumeration
 ```
 

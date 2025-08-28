@@ -14,6 +14,17 @@ File service enumeration focuses on:
 
 ## Common File Services
 
+### FTP (Ports 21, 20)
+File Transfer Protocol provides basic file transfer capabilities between client and server.
+
+**Key Attack Vectors:**
+- Anonymous access exploitation
+- Brute force authentication
+- File upload to web directories
+- Configuration file disclosure
+
+[View FTP Cheat Sheet](ftp.md)
+
 ### SMB (Ports 445, 139)
 Server Message Block protocol provides Windows-based file and printer sharing.
 
