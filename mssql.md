@@ -296,3 +296,4 @@ EXEC xp_cmdshell 'powershell Clear-History';
 - [MSSQL Red Team Cheat Sheet](https://github.com/dsasmblr/mssql-red-team-cheat-sheet)
 - [HackTricks MSSQL](https://book.hacktricks.xyz/pentesting/pentesting-mssql-microsoft-sql-server)
 - [OWASP SQL Injection](https://owasp.org/www-community/attacks/SQL_Injection)
+

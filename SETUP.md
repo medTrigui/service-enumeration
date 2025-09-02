@@ -318,3 +318,4 @@ du -sh docs/
 - **Contributing**: See CONTRIBUTING.md
 - **Code of Conduct**: Professional and respectful interaction
 - **Recognition**: Contributors acknowledged in documentation
+

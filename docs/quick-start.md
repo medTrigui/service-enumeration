@@ -142,3 +142,4 @@ Once you've completed basic reconnaissance:
 5. Document all findings
 
 Select the appropriate cheat sheet based on discovered services to continue with detailed enumeration and exploitation techniques.
+
